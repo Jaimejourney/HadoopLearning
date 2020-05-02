@@ -1,0 +1,67 @@
+## 将数据加载到HDFS中
+
+启动Virtual Box并选择之前下载过的.ova虚拟机文件，具体教程可以参考 [安装虚拟机教程](https://zhuanlan.zhihu.com/p/67316227)
+
+启动虚拟机，访问1080端口可以得到如下界面
+
+![login](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/login.png)
+
+
+
+#### 上传数据
+
+1.通过账户密码 maria_dev/maria_dev登录Ambari
+
+2.进入Ambari控制面板并且打开文件模式(Files View)
+
+![Files view](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/Files view.png)
+
+3. 在文件系统中，你能看到登录账号（在这个例子中是maria_dev)有权限进入的所有文件：
+
+   ![files](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/files.png)
+
+4. 点击/tmp目录
+
+5. 新建目录/data. 点击new folder按钮，然后进入data文件夹，你会看到如下路径
+
+![tmp:data](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/tmp:data.png)
+
+
+
+
+
+#### 上传Geolocation和Trucks文件到data文件夹
+
+1.点击Upload按钮
+
+2.一个上传界面会弹出，点击云图标
+
+![uploadcscv](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/uploadcscv.png)
+
+3.另一个界面会弹出，进入csv文件所在的本地路径，一次只能上传一个文件
+
+![localcsv](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/localcsv.png)
+
+当两个文件都被上传之后，
+
+![afterupload](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/afterupload.png)
+
+此外你也可以进行别的操作：Open, Rename, Permissions, Delete, Copy, Move, Download和Concatenate.
+
+
+
+#### 设置权限
+
+1.点击data文件夹
+
+2.点击Permissions
+
+3.确保所有的权限都被开启
+
+![permissions](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/permissions.png)
+
+
+
+#### 总结
+
+恭喜！让我们总结一下从这章中学到的技能和知识。我们知道了HDFS系统被用来在多台机器间来管理储存数据。而现在我们已经能通过Ambari的帮助来向HDFS上传数据了。

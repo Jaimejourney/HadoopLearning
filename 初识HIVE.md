@@ -1,0 +1,201 @@
+## 初识HIVE
+
+#### 对Data Analytics Studio进行认识
+
+Apache Hive提供了HDFS中数据的关系视图。 Hive可以以Hive管理的表格格式表示数据，也可以仅存储在HDFS中，而与数据所在的文件格式无关。Hive可以从RCFile格式，文本文件，ORC，JSON，parquet，序列文件和许多其他格式查询数据。 通过使用SQL，您可以像表一样查看数据并创建查询，就像在RDBMS中一样。
+
+为了简化与Hive的交互，我们在Hortonworks沙盒中使用了一个名为Data Analytics Studio的工具。 DAS为Hive提供了一个交互式界面。 我们可以创建，编辑，保存和运行查询，并让Hive使用一系列Tez作业为我们评估它们。
+
+现在打开DAS，并介绍到环境中。 在Ambari控制面板上，选择Data Analytics Studio，然后单击Data Analytics Studio UI
+
+![das](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/das.png)
+
+你也可以访问 [本地端口](127.0.01:38000)来进行访问，现在我们来看看Data Analytics Studio的组成部分吧
+
+![dascomponents](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/dascomponents.png)
+
+
+
+有4个选项可与Data Analytics Studio进行交互：
+
+1.查询：此视图使您可以搜索先前执行的SQL查询。 您还可以看到每个用户发出的命令。
+
+2.撰写：从此视图，您可以执行SQL查询并观察其输出。 此外，直观地检查查询结果并将其下载为csv文件。
+
+3.数据库：数据库允许您添加新的数据库和表。 此外，此视图使您可以访问有关数据库的高级信息。
+
+4.报告：此视图可让您跟踪读取和写入操作，并向您显示表的联接报告。
+
+我们来花几分钟来探索一下各种DAS子功能。
+
+
+
+#### 新建HIVE数据表
+
+1.选择Database
+
+2.点击+按钮来新建
+
+3.选择upload table
+
+![upload table](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/upload table.png)
+
+完成一下步骤:
+
+- 选择框: Is first row Header: True
+- 选择Upload from HDFS
+- 设置路径 `/tmp/data/geolocation.csv`
+- 点击Preview
+
+
+
+你会得到类似于如下的界面
+
+![uploadtable2](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/uploadtable2.png)
+
+点击create进行创建
+
+同理创建Trucks表
+
+
+
+#### Trucks表实例数据
+
+点击 `Compose` , 输入一下语句并点击 `Execute`:
+
+```sql
+select * from trucks limit 10;
+```
+
+结果如下：
+
+![select1](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/select1.png)
+
+此外，还有另一些语句可以进行：
+
+- `show tables;`  显示表
+- `describe {table_name};` 显示表中的行
+
+```sql
+describe geolocation;
+```
+
+- `show create table {table_name};` 
+
+```sql
+   show create table geolocation;
+```
+
+- `describe formatted {table_name};` 
+
+```sql
+   describe formatted geolocation;
+```
+
+
+
+默认来说, 当你在Hive中新建一个表的时候, 一个相同名字的目录会在 `/warehouse/tablespace/managed/hive` 中被创建. 使用Ambari文件系统，进入那个文件夹.你会同时看到 `geolocation`和 `trucks` 文件夹:
+
+
+
+#### 重命名查询编辑器
+
+点击在Compose部分的SAVE AS按钮, 输入名字来进行保存：
+
+![save](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/save.png)
+
+
+
+
+
+#### 分析Trucks数据
+
+接下来，我们将使用Hive和Zeppelin分析地理位置和卡车表中的派生数据。 业务目标是更好地了解驾驶员疲劳，卡车过度使用以及各种卡车运输事件对风险造成的影响，从而使公司面临风险。 为了做到这一点，我们将对源数据进行一系列转换，主要是通过SQL进行，并使用Spark计算风险。 在最后一个有关数据可视化的实验中，我们将使用Zeppelin生成一系列图表以更好地理解风险。
+
+![graph](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/graph.png)
+
+让我们开始第一个转换。 我们要计算每辆卡车的每加仑里程。 我们将从卡车数据表开始。 我们需要对每辆卡车的所有里程和加油站进行汇总。 Hive具有一系列可用于重新格式化表格的功能。 关键字LATERAL VIEW是我们调用事物的方式。 堆栈功能使我们能够将数据重组为3列，分别标记为rdate，gas和mile（例如：“ june13”，june13_miles，june13_gas），最多可组成54行。 我们从原始表格中选择了truckid，driverid，rdate，miles，gas，然后为mpg（英里/加仑）添加了计算列。 然后，我们将计算平均里程。
+
+
+
+#### 通过现有卡车数据创建卡车里程数表
+
+使用DSA，运行一下语句：
+
+```sql
+CREATE TABLE truckmileage STORED AS ORC AS SELECT truckid, driverid, rdate, miles, gas, miles / gas mpg FROM trucks LATERAL VIEW stack(54, 'jun13',jun13_miles,jun13_gas,'may13',may13_miles,may13_gas,'apr13',apr13_miles,apr13_gas,'mar13',mar13_miles,mar13_gas,'feb13',feb13_miles,feb13_gas,'jan13',jan13_miles,jan13_gas,'dec12',dec12_miles,dec12_gas,'nov12',nov12_miles,nov12_gas,'oct12',oct12_miles,oct12_gas,'sep12',sep12_miles,sep12_gas,'aug12',aug12_miles,aug12_gas,'jul12',jul12_miles,jul12_gas,'jun12',jun12_miles,jun12_gas,'may12',may12_miles,may12_gas,'apr12',apr12_miles,apr12_gas,'mar12',mar12_miles,mar12_gas,'feb12',feb12_miles,feb12_gas,'jan12',jan12_miles,jan12_gas,'dec11',dec11_miles,dec11_gas,'nov11',nov11_miles,nov11_gas,'oct11',oct11_miles,oct11_gas,'sep11',sep11_miles,sep11_gas,'aug11',aug11_miles,aug11_gas,'jul11',jul11_miles,jul11_gas,'jun11',jun11_miles,jun11_gas,'may11',may11_miles,may11_gas,'apr11',apr11_miles,apr11_gas,'mar11',mar11_miles,mar11_gas,'feb11',feb11_miles,feb11_gas,'jan11',jan11_miles,jan11_gas,'dec10',dec10_miles,dec10_gas,'nov10',nov10_miles,nov10_gas,'oct10',oct10_miles,oct10_gas,'sep10',sep10_miles,sep10_gas,'aug10',aug10_miles,aug10_gas,'jul10',jul10_miles,jul10_gas,'jun10',jun10_miles,jun10_gas,'may10',may10_miles,may10_gas,'apr10',apr10_miles,apr10_gas,'mar10',mar10_miles,mar10_gas,'feb10',feb10_miles,feb10_gas,'jan10',jan10_miles,jan10_gas,'dec09',dec09_miles,dec09_gas,'nov09',nov09_miles,nov09_gas,'oct09',oct09_miles,oct09_gas,'sep09',sep09_miles,sep09_gas,'aug09',aug09_miles,aug09_gas,'jul09',jul09_miles,jul09_gas,'jun09',jun09_miles,jun09_gas,'may09',may09_miles,may09_gas,'apr09',apr09_miles,apr09_gas,'mar09',mar09_miles,mar09_gas,'feb09',feb09_miles,feb09_gas,'jan09',jan09_miles,jan09_gas ) dummyalias AS rdate, miles, gas;
+```
+
+![truckmileage](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/truckmileage.png)
+
+
+
+通过运行如下语句，来检查新建表的数据:
+
+```sql
+select * from truckmileage limit 100;
+```
+
+应该能看到如下界面：
+
+![truckmileage2](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/truckmileage2.png)
+
+
+
+
+
+#### 使用现有的trucks_mileage数据新建avgmileage表：
+
+通常将查询结果保存到表中，以便结果集变得持久。 这被称为“创建所选表”（CTAS）。 将以下DDL复制到查询编辑器中，然后单击 `Execute`：
+
+```sql
+CREATE TABLE avgmileage
+STORED AS ORC
+AS
+SELECT truckid, avg(mpg) avgmpg
+FROM truckmileage
+GROUP BY truckid;
+```
+
+
+
+![avg1](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/avg1.png)
+
+
+
+#### 使用现有的truckmileaeg数据来新建DriverMileage表
+
+以下CTAS按驱动程序ID和里程总和对记录进行分组。 将以下DDL复制到查询编辑器中，然后单击`Execute`：
+
+```sql
+CREATE TABLE DriverMileage
+STORED AS ORC
+AS
+SELECT driverid, sum(miles) totmiles
+FROM truckmileage
+GROUP BY driverid;
+```
+
+![driver](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/driver.png)
+
+![driver2](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/driver2.png)
+
+在下一部分中，我们将使用这些结果来计算所有卡车驾驶员的风险因素，因此将结果存储到HDFS中，路径为`tmp/data/drivermileage`：
+
+![driver3](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/driver3.png)
+
+然后打开web shell，赋予用户权限：
+
+```bash
+sudo -u hdfs hdfs dfs -chown maria_dev:hdfs /tmp/data/drivermileage.csv
+```
+
+然后, 以Maria_dev的身份进入HDFS，并赋予其他用户权限：
+
+![qunxian](/Users/yikaizhu/Downloads/Hadoop sandbox中文教程/qunxian.png)
+
+
+
+#### 总结
+
+恭喜你！ 让我们总结一下我们学到的一些Hive命令，它们用于处理，过滤和操作地理位置和卡车数据。 我们现在能通过`CREATE TABLE` 和 `UPLOAD TABLE`来新建和更新表. 我们也学习了如何将表的文件格式更改为ORC，因此配置单元在读取，写入和处理此数据方面效率更高。
